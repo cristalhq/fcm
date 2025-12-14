@@ -41,6 +41,4 @@ func Example() {
 	}
 
 	_ = pushID // notification ID
-
-	// Output:
 }
