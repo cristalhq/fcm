@@ -35,10 +35,11 @@ func Example() {
 		Token: deviceToken,
 	}
 
-	pushID, err := client.Send(ctx, msg)
+	response, err := client.Send(ctx, msg)
 	if err != nil {
 		// skipping error handling for example test
+		panic(err)
 	}
 
-	_ = pushID // notification ID
+	_ = response.Name // notification ID
 }
