@@ -62,14 +62,14 @@ func NewClient(cfg Config) (*Client, error) {
 //
 // The Message must specify exactly one of Token, Topic and Condition fields.
 // FCM will customize the message for each target platform based on the arguments specified in the [Message].
-func (c *Client) Send(ctx context.Context, message *Message) (string, error) {
+func (c *Client) Send(ctx context.Context, message *Message) (*Response, error) {
 	if err := validateMessage(message); err != nil {
-		return "", err
+		return nil, err
 	}
 	return c.send(ctx, message)
 }
 
-func (c *Client) send(ctx context.Context, message *Message) (string, error) {
+func (c *Client) send(ctx context.Context, message *Message) (*Response, error) {
 	msg := struct {
 		Message *Message `json:"message"`
 	}{
@@ -78,41 +78,41 @@ func (c *Client) send(ctx context.Context, message *Message) (string, error) {
 
 	body, err := json.Marshal(msg)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, bytes.NewBuffer(body))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("c.httpClient.Do: %w", err)
+		return nil, fmt.Errorf("c.httpClient.Do: %w", err)
 	}
 
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("io.ReadAll: %w", err)
+		return nil, fmt.Errorf("io.ReadAll: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("code: %d, body: '%s", resp.StatusCode, string(b))
+		return nil, fmt.Errorf("code: %d, body: '%s", resp.StatusCode, string(b))
 	}
 
-	var result fcmResponse
-	if err := json.Unmarshal(b, &result); err != nil {
+	var response Response
+	if err := json.Unmarshal(b, &response); err != nil {
 		var errResp fcmErrorResponse
 		if err := json.Unmarshal(b, &errResp); err != nil {
-			return "", fmt.Errorf("json.Unmarshal(b, &errResp): %w", err)
+			return nil, fmt.Errorf("json.Unmarshal(b, &errResp): %w", err)
 		}
-		return "", fmt.Errorf("json.Unmarshal(b, &resp): %w", err)
+		return nil, fmt.Errorf("json.Unmarshal(b, &resp): %w", err)
 	}
 
-	return result.Name, nil
+	return &response, nil
 }
 
-type fcmResponse struct {
+type Response struct {
 	Name string `json:"name"`
 }
 
